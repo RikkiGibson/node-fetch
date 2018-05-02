@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const stream = require('stream');
 const { parse: parseURL, URLSearchParams } = require('url');
+const { AbortController, AbortSignal } = require('abort-controller');
 
 let convert;
 try { convert = require('encoding').convert; } catch(e) { }
@@ -1484,6 +1485,21 @@ describe('node-fetch', () => {
 			.and.include({ type: 'system' })
 			.and.have.property('message').that.includes('Could not create Buffer')
 			.and.that.includes('embedded error');
+	});
+
+	it('should reject if a request is aborted', function() {
+		const controller = new AbortController();
+		const promise = fetch(`${base}hello`, {
+			signal: controller.signal
+		});
+		controller.abort();
+		return promise
+			.catch(err => {
+				expect(err).to.be.instanceOf(FetchError);
+				expect(err.message).to.containIgnoreCase("abort");
+				return 0;
+			})
+			.then(value => expect(value).to.equal(0));
 	});
 });
 
